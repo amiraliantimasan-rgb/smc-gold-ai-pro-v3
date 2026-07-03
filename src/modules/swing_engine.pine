@@ -1,0 +1,19 @@
+//============================
+// v0.5 REFACTOR - SWING ENGINE MODULE
+// ICT/SMC Gold AI PRO v3
+// NO PIVOT DESIGN
+//============================
+
+len = input.int(2, "Swing Sensitivity", minval=1)
+
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len]  == ta.lowest(low, len * 2 + 1)
+
+var float[] swingHighs = array.new_float()
+var float[] swingLows  = array.new_float()
+
+if swingHigh
+    array.push(swingHighs, high[len])
+
+if swingLow
+    array.push(swingLows, low[len])
