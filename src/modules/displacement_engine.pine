@@ -1,0 +1,26 @@
+//============================
+// v0.6 REFACTOR - DISPLACEMENT ENGINE MODULE
+// ICT / SMC GOLD AI PRO v3
+//============================
+
+atr = ta.atr(14)
+body = math.abs(close - open)
+
+len = input.int(2, "Swing Sensitivity")
+
+// Basic swing reference
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+
+if swingHigh
+    lastHigh := high[len]
+
+if swingLow
+    lastLow := low[len]
+
+// ICT displacement logic
+bullDisplacement = body > atr * 1.2 and close > open and close > lastHigh
+bearDisplacement = body > atr * 1.2 and close < open and close < lastLow
