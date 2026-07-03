@@ -1,15 +1,16 @@
 //@version=5
-indicator("SMC Gold AI PRO v3 - v0.2 Liquidity Engine", overlay=true, max_labels_count=500)
+indicator("SMC Gold AI PRO v3 - v0.3 Liquidity Sweep Engine", overlay=true, max_labels_count=500)
 
 //============================
-// v0.2 - LIQUIDITY ENGINE (ICT CORE)
-// Built on v0.1 Swing Engine
+// v0.3 - LIQUIDITY SWEEP ENGINE (ICT CORE)
+// Built on v0.2 Liquidity Engine
 //============================
 
 // Inputs
 len = input.int(2, "Swing Sensitivity (NO PIVOT)", minval=1)
 showSwings = input.bool(true, "Show Swings")
 showLiquidity = input.bool(true, "Show Liquidity")
+showSweep = input.bool(true, "Show Sweep")
 eqThreshold = input.float(0.1, "EQH/EQL ATR Tolerance")
 
 atr = ta.atr(14)
@@ -56,18 +57,32 @@ if swingLow
             label.new(bar_index - len, sl, "EQL", style=label.style_label_up, color=color.aqua, textcolor=color.black)
 
 //============================
-// LIQUIDITY ZONES (BASIC MODEL)
+// LIQUIDITY LEVELS
 //============================
 lastHigh = array.size(swingHighs) > 0 ? array.get(swingHighs, array.size(swingHighs)-1) : na
 lastLow  = array.size(swingLows) > 0 ? array.get(swingLows, array.size(swingLows)-1) : na
 
-// Liquidity above highs (BSL concept)
 if showLiquidity and not na(lastHigh)
     line.new(bar_index-1, lastHigh, bar_index, lastHigh, extend=extend.right, color=color.red)
 
-// Liquidity below lows (SSL concept)
 if showLiquidity and not na(lastLow)
     line.new(bar_index-1, lastLow, bar_index, lastLow, extend=extend.right, color=color.green)
+
+//============================
+// LIQUIDITY SWEEP ENGINE (ICT CORE)
+//============================
+
+// Buy-side liquidity sweep (stop hunt above highs)
+buySideSweep = not na(lastHigh) and high > lastHigh and close < lastHigh
+
+// Sell-side liquidity sweep (stop hunt below lows)
+sellSideSweep = not na(lastLow) and low < lastLow and close > lastLow
+
+if showSweep and buySideSweep
+    label.new(bar_index, high, "BSL SWEEP", style=label.style_label_down, color=color.red, textcolor=color.white)
+
+if showSweep and sellSideSweep
+    label.new(bar_index, low, "SSL SWEEP", style=label.style_label_up, color=color.lime, textcolor=color.black)
 
 //============================
 // DEBUG SWINGS
