@@ -1,0 +1,36 @@
+//@version=5
+indicator("SMC Gold AI PRO v3 - MAIN (Refactored v0.6)", overlay=true, max_labels_count=500)
+
+//============================
+// MAIN ORCHESTRATOR
+// ICT + SMC Modular System
+//============================
+
+// NOTE:
+// This file is a simplified orchestrator.
+// Modules are separated under /modules
+
+len = input.int(2, "Sensitivity")
+
+// Basic swing sync (temporary)
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+
+if swingHigh
+    lastHigh := high[len]
+
+if swingLow
+    lastLow := low[len]
+
+// STRUCTURE
+bullBreak = not na(lastHigh) and close > lastHigh
+bearBreak = not na(lastLow) and close < lastLow
+
+if bullBreak
+    label.new(bar_index, high, "BOS/CHoCH ↑", color=color.green)
+
+if bearBreak
+    label.new(bar_index, low, "BOS/CHoCH ↓", color=color.red)
