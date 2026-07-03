@@ -1,0 +1,30 @@
+//============================
+// v0.6 REFACTOR - LIQUIDITY ENGINE MODULE
+// ICT / SMC GOLD AI PRO v3
+//============================
+
+len = input.int(2, "Swing Sensitivity")
+atr = ta.atr(14)
+
+eqThreshold = input.float(0.1, "EQ Threshold")
+
+// Swing detection (base)
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+
+if swingHigh
+    lastHigh := high[len]
+
+if swingLow
+    lastLow := low[len]
+
+// EQH / EQL
+bool eqh = not na(lastHigh) and math.abs(high - lastHigh) <= atr * eqThreshold
+bool eql = not na(lastLow) and math.abs(low - lastLow) <= atr * eqThreshold
+
+// Liquidity zones
+float bsl = lastHigh
+float ssl = lastLow
