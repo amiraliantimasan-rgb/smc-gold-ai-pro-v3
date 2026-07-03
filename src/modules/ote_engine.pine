@@ -1,0 +1,31 @@
+//============================
+// v1.1 - OPTIMAL TRADE ENTRY (OTE) ENGINE
+// ICT / SMC GOLD AI PRO v3
+//============================
+
+len = input.int(2, "Swing Sensitivity")
+atr = ta.atr(14)
+
+// Swing structure
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+
+if swingHigh
+    lastHigh := high[len]
+if swingLow
+    lastLow := low[len]
+
+// Fib zone approximation (0.62 - 0.79 ICT OTE)
+range = lastHigh - lastLow
+oteHigh = lastLow + range * 0.79
+oteLow  = lastLow + range * 0.62
+
+// Price inside OTE zone
+inOTE = close <= oteHigh and close >= oteLow
+
+// Visualization
+if inOTE
+    label.new(bar_index, close, "OTE ZONE", style=label.style_label_center, color=color.yellow, textcolor=color.black)
