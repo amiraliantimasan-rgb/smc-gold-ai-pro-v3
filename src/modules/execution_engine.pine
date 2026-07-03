@@ -1,0 +1,72 @@
+//============================
+// v1.0 - FINAL TRADING ENGINE (ICT + SMC PRO)
+// ENTRY + TP + SL + ALERTS + FILTERS
+//============================
+
+len = input.int(2, "Swing Sensitivity")
+atr = ta.atr(14)
+
+//============================
+// CORE REFERENCE (SIMPLIFIED SYNC)
+//============================
+
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+
+if swingHigh
+    lastHigh := high[len]
+if swingLow
+    lastLow := low[len]
+
+//============================
+// MARKET STRUCTURE TRIGGER
+//============================
+
+bullBreak = not na(lastHigh) and close > lastHigh
+bearBreak = not na(lastLow) and close < lastLow
+
+//============================
+// ENTRY MODEL (ICT STYLE)
+//============================
+
+longEntry  = bullBreak and close > open
+shortEntry = bearBreak and close < open
+
+//============================
+// RISK MODEL (TP / SL BASED ON LIQUIDITY)
+//============================
+
+longSL = lastLow - atr * 0.5
+longTP = close + (close - longSL) * 2
+
+shortSL = lastHigh + atr * 0.5
+shortTP = close - (shortSL - close) * 2
+
+//============================
+// SESSION FILTER (LONDON / NY APPROX)
+//============================
+
+sessionOK = (hour >= 7 and hour <= 20)
+
+//============================
+// FINAL SIGNALS
+//============================
+
+buySignal  = longEntry and sessionOK
+sellSignal = shortEntry and sessionOK
+
+if buySignal
+    label.new(bar_index, low, "🔥 FINAL BUY\nTP/SL READY", style=label.style_label_up, color=color.green, textcolor=color.white)
+
+if sellSignal
+    label.new(bar_index, high, "🔥 FINAL SELL\nTP/SL READY", style=label.style_label_down, color=color.red, textcolor=color.white)
+
+//============================
+// ALERTS
+//============================
+
+alertcondition(buySignal, title="BUY ALERT", message="SMC Gold AI PRO v1.0 BUY Signal")
+alertcondition(sellSignal, title="SELL ALERT", message="SMC Gold AI PRO v1.0 SELL Signal")
