@@ -1,0 +1,21 @@
+//============================
+// v1.1 - FAIR VALUE GAP ENGINE (ICT)
+// ICT / SMC GOLD AI PRO v3
+//============================
+
+// FVG = 3 candle imbalance
+
+len = input.int(2, "Swing Sensitivity")
+
+// Bullish FVG: high of candle 2 < low of candle 0
+bullFVG = high[2] < low
+
+// Bearish FVG: low of candle 2 > high of candle 0
+bearFVG = low[2] > high
+
+// Visualization
+if bullFVG
+    box.new(left=bar_index-2, right=bar_index, top=low, bottom=high[2], extend=extend.right, bgcolor=color.new(color.green, 85), border_color=color.green)
+
+if bearFVG
+    box.new(left=bar_index-2, right=bar_index, top=low[2], bottom=high, extend=extend.right, bgcolor=color.new(color.red, 85), border_color=color.red)
