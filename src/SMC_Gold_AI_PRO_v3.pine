@@ -1,9 +1,9 @@
 //@version=5
-indicator("SMC Gold AI PRO v3 - v0.3 Liquidity Sweep Engine", overlay=true, max_labels_count=500)
+indicator("SMC Gold AI PRO v3 - v0.4 Displacement Engine", overlay=true, max_labels_count=500)
 
 //============================
-// v0.3 - LIQUIDITY SWEEP ENGINE (ICT CORE)
-// Built on v0.2 Liquidity Engine
+// v0.4 - DISPLACEMENT ENGINE (ICT CORE)
+// Built on v0.3 Liquidity Sweep Engine
 //============================
 
 // Inputs
@@ -11,9 +11,11 @@ len = input.int(2, "Swing Sensitivity (NO PIVOT)", minval=1)
 showSwings = input.bool(true, "Show Swings")
 showLiquidity = input.bool(true, "Show Liquidity")
 showSweep = input.bool(true, "Show Sweep")
+showDisplacement = input.bool(true, "Show Displacement")
 eqThreshold = input.float(0.1, "EQH/EQL ATR Tolerance")
 
 atr = ta.atr(14)
+body = math.abs(close - open)
 
 //============================
 // SWING ENGINE (NO PIVOT)
@@ -37,7 +39,6 @@ if swingHigh
     if showSwings
         label.new(bar_index - len, sh, "SH", style=label.style_label_down, color=color.gray)
 
-    // EQH detection
     if array.size(swingHighs) > 1
         float prevH = array.get(swingHighs, array.size(swingHighs) - 2)
         if math.abs(sh - prevH) <= atr * eqThreshold
@@ -50,7 +51,6 @@ if swingLow
     if showSwings
         label.new(bar_index - len, sl, "SL", style=label.style_label_up, color=color.gray)
 
-    // EQL detection
     if array.size(swingLows) > 1
         float prevL = array.get(swingLows, array.size(swingLows) - 2)
         if math.abs(sl - prevL) <= atr * eqThreshold
@@ -72,10 +72,7 @@ if showLiquidity and not na(lastLow)
 // LIQUIDITY SWEEP ENGINE (ICT CORE)
 //============================
 
-// Buy-side liquidity sweep (stop hunt above highs)
 buySideSweep = not na(lastHigh) and high > lastHigh and close < lastHigh
-
-// Sell-side liquidity sweep (stop hunt below lows)
 sellSideSweep = not na(lastLow) and low < lastLow and close > lastLow
 
 if showSweep and buySideSweep
@@ -83,6 +80,19 @@ if showSweep and buySideSweep
 
 if showSweep and sellSideSweep
     label.new(bar_index, low, "SSL SWEEP", style=label.style_label_up, color=color.lime, textcolor=color.black)
+
+//============================
+// DISPLACEMENT ENGINE (ICT MOMENTUM)
+//============================
+
+bullDisplacement = body > atr * 1.2 and close > open and close > lastHigh
+bearDisplacement = body > atr * 1.2 and close < open and close < lastLow
+
+if showDisplacement and bullDisplacement
+    label.new(bar_index, high, "BULL DISP", style=label.style_label_up, color=color.green, textcolor=color.white)
+
+if showDisplacement and bearDisplacement
+    label.new(bar_index, low, "BEAR DISP", style=label.style_label_down, color=color.red, textcolor=color.white)
 
 //============================
 // DEBUG SWINGS
