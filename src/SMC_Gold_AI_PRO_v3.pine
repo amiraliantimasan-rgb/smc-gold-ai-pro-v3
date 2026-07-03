@@ -1,61 +1,76 @@
 //@version=5
-indicator("SMC Gold AI PRO v3 - v0.1 Swing Engine", overlay=true, max_labels_count=500)
+indicator("SMC Gold AI PRO v3 - v0.2 Liquidity Engine", overlay=true, max_labels_count=500)
 
 //============================
-// v0.1 - CUSTOM SWING ENGINE (NO PIVOT)
-// ICT-style price action structure core
+// v0.2 - LIQUIDITY ENGINE (ICT CORE)
+// Built on v0.1 Swing Engine
 //============================
 
 // Inputs
 len = input.int(2, "Swing Sensitivity (NO PIVOT)", minval=1)
 showSwings = input.bool(true, "Show Swings")
+showLiquidity = input.bool(true, "Show Liquidity")
+eqThreshold = input.float(0.1, "EQH/EQL ATR Tolerance")
+
+atr = ta.atr(14)
 
 //============================
-// SWING LOGIC (PRICE ACTION BASED)
+// SWING ENGINE (NO PIVOT)
 //============================
-// We avoid ta.pivothigh/ta.pivotlow completely
-
 swingHigh = high[len] == ta.highest(high, len * 2 + 1)
 swingLow  = low[len]  == ta.lowest(low, len * 2 + 1)
 
 //============================
 // STORAGE
 //============================
-var float lastHigh = na
-var float lastLow  = na
+var float[] swingHighs = array.new_float()
+var float[] swingLows  = array.new_float()
 
 //============================
-// SWING HIGH
+// SWING PROCESS
 //============================
 if swingHigh
-    lastHigh := high[len]
-    if showSwings
-        label.new(
-            bar_index - len,
-            high[len],
-            "SH",
-            style=label.style_label_down,
-            color=color.gray,
-            textcolor=color.white
-        )
+    float sh = high[len]
+    array.push(swingHighs, sh)
 
-//============================
-// SWING LOW
-//============================
+    if showSwings
+        label.new(bar_index - len, sh, "SH", style=label.style_label_down, color=color.gray)
+
+    // EQH detection
+    if array.size(swingHighs) > 1
+        float prevH = array.get(swingHighs, array.size(swingHighs) - 2)
+        if math.abs(sh - prevH) <= atr * eqThreshold
+            label.new(bar_index - len, sh, "EQH", style=label.style_label_down, color=color.orange, textcolor=color.black)
+
 if swingLow
-    lastLow := low[len]
+    float sl = low[len]
+    array.push(swingLows, sl)
+
     if showSwings
-        label.new(
-            bar_index - len,
-            low[len],
-            "SL",
-            style=label.style_label_up,
-            color=color.gray,
-            textcolor=color.white
-        )
+        label.new(bar_index - len, sl, "SL", style=label.style_label_up, color=color.gray)
+
+    // EQL detection
+    if array.size(swingLows) > 1
+        float prevL = array.get(swingLows, array.size(swingLows) - 2)
+        if math.abs(sl - prevL) <= atr * eqThreshold
+            label.new(bar_index - len, sl, "EQL", style=label.style_label_up, color=color.aqua, textcolor=color.black)
 
 //============================
-// DEBUG STRUCTURE
+// LIQUIDITY ZONES (BASIC MODEL)
+//============================
+lastHigh = array.size(swingHighs) > 0 ? array.get(swingHighs, array.size(swingHighs)-1) : na
+lastLow  = array.size(swingLows) > 0 ? array.get(swingLows, array.size(swingLows)-1) : na
+
+// Liquidity above highs (BSL concept)
+if showLiquidity and not na(lastHigh)
+    line.new(bar_index-1, lastHigh, bar_index, lastHigh, extend=extend.right, color=color.red)
+
+// Liquidity below lows (SSL concept)
+if showLiquidity and not na(lastLow)
+    line.new(bar_index-1, lastLow, bar_index, lastLow, extend=extend.right, color=color.green)
+
+//============================
+// DEBUG SWINGS
 //============================
 plotchar(swingHigh, "Swing High", "▼", location=location.abovebar, color=color.red)
 plotchar(swingLow, "Swing Low", "▲", location=location.belowbar, color=color.lime)
