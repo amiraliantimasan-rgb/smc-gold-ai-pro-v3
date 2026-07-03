@@ -1,0 +1,61 @@
+//@version=5
+indicator("SMC Gold AI PRO v3 - v0.1 Swing Engine", overlay=true, max_labels_count=500)
+
+//============================
+// v0.1 - CUSTOM SWING ENGINE (NO PIVOT)
+// ICT-style price action structure core
+//============================
+
+// Inputs
+len = input.int(2, "Swing Sensitivity (NO PIVOT)", minval=1)
+showSwings = input.bool(true, "Show Swings")
+
+//============================
+// SWING LOGIC (PRICE ACTION BASED)
+//============================
+// We avoid ta.pivothigh/ta.pivotlow completely
+
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len]  == ta.lowest(low, len * 2 + 1)
+
+//============================
+// STORAGE
+//============================
+var float lastHigh = na
+var float lastLow  = na
+
+//============================
+// SWING HIGH
+//============================
+if swingHigh
+    lastHigh := high[len]
+    if showSwings
+        label.new(
+            bar_index - len,
+            high[len],
+            "SH",
+            style=label.style_label_down,
+            color=color.gray,
+            textcolor=color.white
+        )
+
+//============================
+// SWING LOW
+//============================
+if swingLow
+    lastLow := low[len]
+    if showSwings
+        label.new(
+            bar_index - len,
+            low[len],
+            "SL",
+            style=label.style_label_up,
+            color=color.gray,
+            textcolor=color.white
+        )
+
+//============================
+// DEBUG STRUCTURE
+//============================
+plotchar(swingHigh, "Swing High", "▼", location=location.abovebar, color=color.red)
+plotchar(swingLow, "Swing Low", "▲", location=location.belowbar, color=color.lime)
