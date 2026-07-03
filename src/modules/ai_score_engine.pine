@@ -1,0 +1,87 @@
+//============================
+// v0.9 - AI CONFLUENCE SCORE ENGINE
+// ICT + SMC Hybrid Scoring System
+//============================
+
+len = input.int(2, "Swing Sensitivity")
+atr = ta.atr(14)
+body = math.abs(close - open)
+
+//----------------------------
+// CORE STRUCTURE (LOCAL)
+//----------------------------
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+var int trend = 0
+
+if swingHigh
+    lastHigh := high[len]
+if swingLow
+    lastLow := low[len]
+
+//----------------------------
+// ICT EVENTS
+//----------------------------
+bullSweep = not na(lastHigh) and high > lastHigh and close < lastHigh
+bearSweep = not na(lastLow) and low < lastLow and close > lastLow
+
+bullDisplacement = body > atr * 1.2 and close > lastHigh
+bearDisplacement = body > atr * 1.2 and close < lastLow
+
+bullBOS = not na(lastHigh) and close > lastHigh
+bearBOS = not na(lastLow) and close < lastLow
+
+//----------------------------
+// ORDER BLOCK CONTEXT
+//----------------------------
+bullOB = bullDisplacement and close[1] < open[1]
+bearOB = bearDisplacement and close[1] > open[1]
+
+//----------------------------
+// SCORING SYSTEM (0 - 100)
+//----------------------------
+scoreBull = 0
+scoreBear = 0
+
+// Sweep adds liquidity confirmation
+if bullSweep
+    scoreBear += 25
+if bearSweep
+    scoreBull += 25
+
+// Displacement strong confirmation
+if bullDisplacement
+    scoreBull += 30
+if bearDisplacement
+    scoreBear += 30
+
+// BOS confirmation
+if bullBOS
+    scoreBull += 25
+if bearBOS
+    scoreBear += 25
+
+// Order Block presence
+if bullOB
+    scoreBull += 20
+if bearOB
+    scoreBear += 20
+
+// Normalize
+scoreBull := math.min(scoreBull, 100)
+scoreBear := math.min(scoreBear, 100)
+
+//----------------------------
+// SIGNAL OUTPUT
+//----------------------------
+buySignal  = scoreBull >= 70 and scoreBull > scoreBear
+sellSignal = scoreBear >= 70 and scoreBear > scoreBull
+
+if buySignal
+    label.new(bar_index, low, "🔥 STRONG BUY\nScore: " + str.tostring(scoreBull), style=label.style_label_up, color=color.green, textcolor=color.white)
+
+if sellSignal
+    label.new(bar_index, high, "🔥 STRONG SELL\nScore: " + str.tostring(scoreBear), style=label.style_label_down, color=color.red, textcolor=color.white)
