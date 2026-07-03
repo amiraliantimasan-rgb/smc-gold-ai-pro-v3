@@ -1,0 +1,50 @@
+//============================
+// v0.7 REFACTOR - ORDER BLOCK ENGINE (ICT)
+// ICT / SMC GOLD AI PRO v3
+//============================
+
+// NOTE:
+// Simplified institutional Order Block model
+// based on last opposite candle before displacement
+
+len = input.int(2, "Swing Sensitivity")
+
+atr = ta.atr(14)
+body = math.abs(close - open)
+
+// Swing reference (simplified)
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+
+if swingHigh
+    lastHigh := high[len]
+
+if swingLow
+    lastLow := low[len]
+
+// Displacement proxy
+bullDisplacement = body > atr * 1.2 and close > lastHigh
+bearDisplacement = body > atr * 1.2 and close < lastLow
+
+//============================
+// ORDER BLOCK DETECTION (SIMPLIFIED ICT)
+//============================
+
+// Bullish OB: last bearish candle before bullish displacement
+bullOB = bullDisplacement and close[1] < open[1]
+
+// Bearish OB: last bullish candle before bearish displacement
+bearOB = bearDisplacement and close[1] > open[1]
+
+//============================
+// VISUALIZATION
+//============================
+
+if bullOB
+    label.new(bar_index-1, low[1], "BULL OB", style=label.style_label_up, color=color.new(color.green, 0), textcolor=color.white)
+
+if bearOB
+    label.new(bar_index-1, high[1], "BEAR OB", style=label.style_label_down, color=color.new(color.red, 0), textcolor=color.white)
