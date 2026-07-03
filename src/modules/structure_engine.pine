@@ -1,0 +1,34 @@
+//============================
+// v0.6 REFACTOR - STRUCTURE ENGINE MODULE
+// ICT / SMC GOLD AI PRO v3
+//============================
+
+len = input.int(2, "Swing Sensitivity")
+
+swingHigh = high[len] == ta.highest(high, len * 2 + 1)
+swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+
+var float lastHigh = na
+var float lastLow  = na
+var int trend = 0
+
+if swingHigh
+    lastHigh := high[len]
+
+if swingLow
+    lastLow := low[len]
+
+bullBreak = not na(lastHigh) and close > lastHigh
+bearBreak = not na(lastLow) and close < lastLow
+
+bool bosUp = bullBreak and trend != 1
+bool bosDn = bearBreak and trend != -1
+
+bool chochUp = bullBreak and trend == -1
+bool chochDn = bearBreak and trend == 1
+
+if bullBreak
+    trend := 1
+
+if bearBreak
+    trend := -1
