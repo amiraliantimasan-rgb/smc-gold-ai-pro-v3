@@ -1,9 +1,9 @@
 //@version=5
-indicator("SMC Gold AI PRO v3 - v0.4 Displacement Engine", overlay=true, max_labels_count=500)
+indicator("SMC Gold AI PRO v3 - v0.5 Market Structure Engine", overlay=true, max_labels_count=500)
 
 //============================
-// v0.4 - DISPLACEMENT ENGINE (ICT CORE)
-// Built on v0.3 Liquidity Sweep Engine
+// v0.5 - MARKET STRUCTURE ENGINE (SMC LAYER)
+// Built on v0.4 Displacement Engine
 //============================
 
 // Inputs
@@ -12,6 +12,7 @@ showSwings = input.bool(true, "Show Swings")
 showLiquidity = input.bool(true, "Show Liquidity")
 showSweep = input.bool(true, "Show Sweep")
 showDisplacement = input.bool(true, "Show Displacement")
+showStructure = input.bool(true, "Show BOS/CHoCH")
 eqThreshold = input.float(0.1, "EQH/EQL ATR Tolerance")
 
 atr = ta.atr(14)
@@ -28,6 +29,7 @@ swingLow  = low[len]  == ta.lowest(low, len * 2 + 1)
 //============================
 var float[] swingHighs = array.new_float()
 var float[] swingLows  = array.new_float()
+var int trend = 0
 
 //============================
 // SWING PROCESS
@@ -93,6 +95,21 @@ if showDisplacement and bullDisplacement
 
 if showDisplacement and bearDisplacement
     label.new(bar_index, low, "BEAR DISP", style=label.style_label_down, color=color.red, textcolor=color.white)
+
+//============================
+// MARKET STRUCTURE (BOS / CHoCH)
+//============================
+
+bullBreak = not na(lastHigh) and close > lastHigh
+bearBreak = not na(lastLow) and close < lastLow
+
+if showStructure and bullBreak
+    label.new(bar_index, high, trend == -1 ? "CHoCH ↑" : "BOS ↑", style=label.style_label_up, color=color.lime, textcolor=color.black)
+    trend := 1
+
+if showStructure and bearBreak
+    label.new(bar_index, low, trend == 1 ? "CHoCH ↓" : "BOS ↓", style=label.style_label_down, color=color.red, textcolor=color.white)
+    trend := -1
 
 //============================
 // DEBUG SWINGS
