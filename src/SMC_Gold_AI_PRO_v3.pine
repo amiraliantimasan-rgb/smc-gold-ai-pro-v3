@@ -1,5 +1,5 @@
 //@version=6
-indicator("SMC Gold AI PRO v3 - v0.6 FVG Engine", overlay=true, max_labels_count=500, max_boxes_count=500)
+indicator("SMC Gold AI PRO v3 - v0.7 FVG + OB Engine", overlay=true, max_labels_count=500, max_boxes_count=500)
 
 //============================
 // INPUTS
@@ -11,9 +11,10 @@ showSweep = input.bool(true)
 showDisplacement = input.bool(true)
 showStructure = input.bool(true)
 showFVG = input.bool(true)
+showOB = input.bool(true)
 
 //============================
-// CORE CALCULATIONS
+// CORE
 //============================
 atr = ta.atr(14)
 body = math.abs(close - open)
@@ -24,14 +25,10 @@ body = math.abs(close - open)
 swingHigh = high[len] == ta.highest(high, len * 2 + 1)
 swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
 
-// STORAGE
 var float[] swingHighs = array.new_float()
 var float[] swingLows  = array.new_float()
 var int trend = 0
 
-//============================
-// SWINGS
-//============================
 if swingHigh
     sh = high[len]
     array.push(swingHighs, sh)
@@ -44,12 +41,12 @@ if swingLow
     if showSwings
         label.new(bar_index - len, sl, "SL", style=label.style_label_up, color=color.gray)
 
-//============================
-// LIQUIDITY
-//============================
 lastHigh = array.size(swingHighs) > 0 ? array.get(swingHighs, array.size(swingHighs)-1) : na
 lastLow  = array.size(swingLows) > 0 ? array.get(swingLows, array.size(swingLows)-1) : na
 
+//============================
+// LIQUIDITY
+//============================
 if showLiquidity and not na(lastHigh)
     line.new(bar_index-1, lastHigh, bar_index, lastHigh, extend=extend.right, color=color.red)
 
@@ -57,7 +54,7 @@ if showLiquidity and not na(lastLow)
     line.new(bar_index-1, lastLow, bar_index, lastLow, extend=extend.right, color=color.green)
 
 //============================
-// LIQUIDITY SWEEP
+// SWEEPS
 //============================
 buySweep  = not na(lastHigh) and high > lastHigh and close < lastHigh
 sellSweep = not na(lastLow) and low < lastLow and close > lastLow
@@ -81,7 +78,7 @@ if showDisplacement and bearDisp
     label.new(bar_index, low, "BEAR DISP", color=color.red)
 
 //============================
-// MARKET STRUCTURE
+// STRUCTURE
 //============================
 bullBreak = not na(lastHigh) and close > lastHigh
 bearBreak = not na(lastLow) and close < lastLow
@@ -95,7 +92,7 @@ if showStructure and bearBreak
     trend := -1
 
 //============================
-// FVG ENGINE (NO REPAINT)
+// FVG ENGINE
 //============================
 fvgBull = low > high[2]
 fvgBear = high < low[2]
@@ -105,6 +102,20 @@ if showFVG and fvgBull
 
 if showFVG and fvgBear
     box.new(bar_index-2, low[2], bar_index, high, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+//============================
+// ORDER BLOCK ENGINE (v0.7)
+//============================
+bullOB = close > open and close[1] < open[1] and close > lastHigh
+bearOB = close < open and close[1] > open[1] and close < lastLow
+
+if showOB and bullOB
+    box.new(bar_index-1, high[1], bar_index, low[1], border_color=color.lime, bgcolor=color.new(color.lime, 85))
+    label.new(bar_index, high, "BULL OB", color=color.lime)
+
+if showOB and bearOB
+    box.new(bar_index-1, high[1], bar_index, low[1], border_color=color.red, bgcolor=color.new(color.red, 85))
+    label.new(bar_index, low, "BEAR OB", color=color.red)
 
 //============================
 // DEBUG
