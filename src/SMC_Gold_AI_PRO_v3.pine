@@ -1,178 +1,42 @@
-//@version=6
-indicator("SMC Gold AI PRO v3 - v0.8 Smart Money Engine", overlay=true, max_labels_count=500, max_boxes_count=500)
 
 //============================
-// INPUTS
+// v1.1 ENHANCEMENTS
 //============================
-len = input.int(2, "Swing Sensitivity", minval=1)
-showSwings = input.bool(true)
-showLiquidity = input.bool(true)
-showSweep = input.bool(true)
-showDisplacement = input.bool(true)
-showStructure = input.bool(true)
-showFVG = input.bool(true)
-showOB = input.bool(true)
-showMitigation = input.bool(true)
-showPD = input.bool(true)
 
-//============================
-// CORE
-//============================
-atr = ta.atr(14)
-body = math.abs(close - open)
+// SESSION FILTER
+useSessionFilter = input.bool(false, "Use Session Filter")
+londonSession = input.session("0700-1100", "London Session")
+nySession = input.session("1300-1700", "New York Session")
 
-//============================
-// SWING ENGINE
-//============================
-swingHigh = high[len] == ta.highest(high, len * 2 + 1)
-swingLow  = low[len] == ta.lowest(low, len * 2 + 1)
+inLondon = not na(time(timeframe.period, londonSession))
+inNY = not na(time(timeframe.period, nySession))
 
-var float[] swingHighs = array.new_float()
-var float[] swingLows  = array.new_float()
-var int trend = 0
+tradeAllowed = not useSessionFilter or inLondon or inNY
 
-if swingHigh
-    sh = high[len]
-    array.push(swingHighs, sh)
-    if showSwings
-        label.new(bar_index - len, sh, "SH", style=label.style_label_down, color=color.gray)
+// RISK MANAGEMENT DISPLAY
+riskPercent = input.float(1.0, "Risk %", minval=0.1, step=0.1)
 
-if swingLow
-    sl = low[len]
-    array.push(swingLows, sl)
-    if showSwings
-        label.new(bar_index - len, sl, "SL", style=label.style_label_up, color=color.gray)
+riskValueLong = strongBuy and tradeAllowed ? (close - lastLow) * riskPercent : na
+riskValueShort = strongSell and tradeAllowed ? (lastHigh - close) * riskPercent : na
 
-lastHigh = array.size(swingHighs) > 0 ? array.get(swingHighs, array.size(swingHighs)-1) : na
-lastLow  = array.size(swingLows) > 0 ? array.get(swingLows, array.size(swingLows)-1) : na
+// DASHBOARD
+var table dash = table.new(position.top_right, 2, 6, border_width=1)
 
-//============================
-// STRUCTURE BREAKER
-//============================
-bullBreak = not na(lastHigh) and close > lastHigh
-bearBreak = not na(lastLow) and close < lastLow
+if bar_index % 5 == 0
+    table.cell(dash, 0, 0, "SMC AI v1.1", text_color=color.white, bgcolor=color.black)
+    table.cell(dash, 1, 0, "ACTIVE", text_color=color.lime, bgcolor=color.black)
 
-breakerUp = bullBreak and trend == -1
-breakerDn = bearBreak and trend == 1
+    table.cell(dash, 0, 1, "Trend")
+    table.cell(dash, 1, 1, str.tostring(trend))
 
-if showStructure and bullBreak
-    label.new(bar_index, high, breakerUp ? "BREAKER ↑" : "BOS ↑", color=color.lime)
-    trend := 1
+    table.cell(dash, 0, 2, "Buy Score")
+    table.cell(dash, 1, 2, str.tostring(bullScore))
 
-if showStructure and bearBreak
-    label.new(bar_index, low, breakerDn ? "BREAKER ↓" : "BOS ↓", color=color.red)
-    trend := -1
+    table.cell(dash, 0, 3, "Sell Score")
+    table.cell(dash, 1, 3, str.tostring(bearScore))
 
-//============================
-// SWEEPS
-//============================
-buySweep  = not na(lastHigh) and high > lastHigh and close < lastHigh
-sellSweep = not na(lastLow) and low < lastLow and close > lastLow
+    table.cell(dash, 0, 4, "Session")
+    table.cell(dash, 1, 4, inLondon ? "London" : inNY ? "NY" : "Off")
 
-if showSweep and buySweep
-    label.new(bar_index, high, "BSL SWEEP", style=label.style_label_down, color=color.red)
-if showSweep and sellSweep
-    label.new(bar_index, low, "SSL SWEEP", style=label.style_label_up, color=color.lime)
-
-//============================
-// FVG
-//============================
-fvgBull = low > high[2]
-fvgBear = high < low[2]
-
-bullFVG = fvgBull
-bearFVG = fvgBear
-
-if showFVG and bullFVG
-    box.new(bar_index-2, high[2], bar_index, low, border_color=color.green, bgcolor=color.new(color.green, 85))
-if showFVG and bearFVG
-    box.new(bar_index-2, low[2], bar_index, high, border_color=color.red, bgcolor=color.new(color.red, 85))
-
-//============================
-// MITIGATION
-//============================
-var float fvgMid = na
-if bullFVG
-    fvgMid := (low + high[2]) / 2
-if bearFVG
-    fvgMid := (low[2] + high) / 2
-
-mitigateFVG = showMitigation and not na(fvgMid) and (low <= fvgMid and high >= fvgMid)
-if mitigateFVG
-    label.new(bar_index, close, "MITIGATED", color=color.yellow)
-
-//============================
-// ORDER BLOCK
-//============================
-bullOB = close > open and close[1] < open[1] and close > lastHigh
-bearOB = close < open and close[1] > open[1] and close < lastLow
-
-if showOB and bullOB
-    box.new(bar_index-1, high[1], bar_index, low[1], border_color=color.lime, bgcolor=color.new(color.lime, 85))
-if showOB and bearOB
-    box.new(bar_index-1, high[1], bar_index, low[1], border_color=color.red, bgcolor=color.new(color.red, 85))
-
-//============================
-// PREMIUM / DISCOUNT
-//============================
-range = (lastHigh - lastLow)
-mid = lastLow + range/2
-premium = close > mid
-discount = close < mid
-
-if showPD
-    if premium
-        label.new(bar_index, high, "PREMIUM", color=color.orange)
-    if discount
-        label.new(bar_index, low, "DISCOUNT", color=color.aqua)
-
-//============================
-// DISPLACEMENT
-//============================
-bullDisp = body > atr * 1.2 and close > lastHigh
-bearDisp = body > atr * 1.2 and close < lastLow
-
-if showDisplacement and bullDisp
-    label.new(bar_index, high, "BULL DISP", color=color.green)
-if showDisplacement and bearDisp
-    label.new(bar_index, low, "BEAR DISP", color=color.red)
-
-//============================
-// DEBUG
-//============================
-plotchar(swingHigh, "SH", "▼", location=location.abovebar)
-plotchar(swingLow, "SL", "▲", location=location.belowbar)
-
-//============================
-// AI SCORE ENGINE (v0.9 PATCH)
-//============================
-showAI = input.bool(true)
-
-bullScore = (trend == 1 ? 15 : 0) + (sellSweep ? 15 : 0) + (bullFVG ? 10 : 0) + (bullOB ? 15 : 0) + (bullDisp ? 15 : 0) + (discount ? 10 : 0)
-bearScore = (trend == -1 ? 15 : 0) + (buySweep ? 15 : 0) + (bearFVG ? 10 : 0) + (bearOB ? 15 : 0) + (bearDisp ? 15 : 0) + (premium ? 10 : 0)
-
-strongBuy = bullScore >= 60
-strongSell = bearScore >= 60
-
-//============================
-// EXECUTION ENGINE v1.0 PATCH
-//============================
-showExec = input.bool(true)
-
-entryLong = strongBuy ? close : na
-entryShort = strongSell ? close : na
-
-slLong = strongBuy ? lastLow : na
-slShort = strongSell ? lastHigh : na
-
-tpLong = strongBuy ? close + (close - lastLow) * 2 : na
-tpShort = strongSell ? close - (lastHigh - close) * 2 : na
-
-if showExec and strongBuy
-    label.new(bar_index, high, "LONG SL:" + str.tostring(slLong) + " TP:" + str.tostring(tpLong), color=color.lime)
-
-if showExec and strongSell
-    label.new(bar_index, low, "SHORT SL:" + str.tostring(slShort) + " TP:" + str.tostring(tpShort), color=color.red)
-
-alertcondition(strongBuy, "AI BUY", "Strong Buy Signal")
-alertcondition(strongSell, "AI SELL", "Strong Sell Signal")
+    table.cell(dash, 0, 5, "Trade")
+    table.cell(dash, 1, 5, tradeAllowed ? "YES" : "NO")
