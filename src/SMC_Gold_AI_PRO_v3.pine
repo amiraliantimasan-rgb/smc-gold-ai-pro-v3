@@ -47,14 +47,6 @@ lastHigh = array.size(swingHighs) > 0 ? array.get(swingHighs, array.size(swingHi
 lastLow  = array.size(swingLows) > 0 ? array.get(swingLows, array.size(swingLows)-1) : na
 
 //============================
-// LIQUIDITY
-//============================
-if showLiquidity and not na(lastHigh)
-    line.new(bar_index-1, lastHigh, bar_index, lastHigh, extend=extend.right, color=color.red)
-if showLiquidity and not na(lastLow)
-    line.new(bar_index-1, lastLow, bar_index, lastLow, extend=extend.right, color=color.green)
-
-//============================
 // STRUCTURE BREAKER
 //============================
 bullBreak = not na(lastHigh) and close > lastHigh
@@ -88,19 +80,23 @@ if showSweep and sellSweep
 fvgBull = low > high[2]
 fvgBear = high < low[2]
 
-var float fvgMid = na
+bullFVG = fvgBull
+bearFVG = fvgBear
 
-if showFVG and fvgBull
-    fvgMid := (low + high[2]) / 2
+if showFVG and bullFVG
     box.new(bar_index-2, high[2], bar_index, low, border_color=color.green, bgcolor=color.new(color.green, 85))
-
-if showFVG and fvgBear
-    fvgMid := (low[2] + high) / 2
+if showFVG and bearFVG
     box.new(bar_index-2, low[2], bar_index, high, border_color=color.red, bgcolor=color.new(color.red, 85))
 
 //============================
 // MITIGATION
 //============================
+var float fvgMid = na
+if bullFVG
+    fvgMid := (low + high[2]) / 2
+if bearFVG
+    fvgMid := (low[2] + high) / 2
+
 mitigateFVG = showMitigation and not na(fvgMid) and (low <= fvgMid and high >= fvgMid)
 if mitigateFVG
     label.new(bar_index, close, "MITIGATED", color=color.yellow)
@@ -146,3 +142,20 @@ if showDisplacement and bearDisp
 //============================
 plotchar(swingHigh, "SH", "▼", location=location.abovebar)
 plotchar(swingLow, "SL", "▲", location=location.belowbar)
+
+//============================
+// AI SCORE ENGINE (v0.9 PATCH)
+//============================
+showAI = input.bool(true)
+
+bullScore = (trend == 1 ? 15 : 0) + (sellSweep ? 15 : 0) + (bullFVG ? 10 : 0) + (bullOB ? 15 : 0) + (bullDisp ? 15 : 0) + (discount ? 10 : 0)
+bearScore = (trend == -1 ? 15 : 0) + (buySweep ? 15 : 0) + (bearFVG ? 10 : 0) + (bearOB ? 15 : 0) + (bearDisp ? 15 : 0) + (premium ? 10 : 0)
+
+strongBuy = bullScore >= 60
+strongSell = bearScore >= 60
+
+if showAI
+    if strongBuy
+        label.new(bar_index, high, "AI BUY " + str.tostring(bullScore), color=color.lime)
+    if strongSell
+        label.new(bar_index, low, "AI SELL " + str.tostring(bearScore), color=color.red)
