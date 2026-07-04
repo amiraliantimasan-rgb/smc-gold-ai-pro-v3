@@ -154,8 +154,25 @@ bearScore = (trend == -1 ? 15 : 0) + (buySweep ? 15 : 0) + (bearFVG ? 10 : 0) + 
 strongBuy = bullScore >= 60
 strongSell = bearScore >= 60
 
-if showAI
-    if strongBuy
-        label.new(bar_index, high, "AI BUY " + str.tostring(bullScore), color=color.lime)
-    if strongSell
-        label.new(bar_index, low, "AI SELL " + str.tostring(bearScore), color=color.red)
+//============================
+// EXECUTION ENGINE v1.0 PATCH
+//============================
+showExec = input.bool(true)
+
+entryLong = strongBuy ? close : na
+entryShort = strongSell ? close : na
+
+slLong = strongBuy ? lastLow : na
+slShort = strongSell ? lastHigh : na
+
+tpLong = strongBuy ? close + (close - lastLow) * 2 : na
+tpShort = strongSell ? close - (lastHigh - close) * 2 : na
+
+if showExec and strongBuy
+    label.new(bar_index, high, "LONG SL:" + str.tostring(slLong) + " TP:" + str.tostring(tpLong), color=color.lime)
+
+if showExec and strongSell
+    label.new(bar_index, low, "SHORT SL:" + str.tostring(slShort) + " TP:" + str.tostring(tpShort), color=color.red)
+
+alertcondition(strongBuy, "AI BUY", "Strong Buy Signal")
+alertcondition(strongSell, "AI SELL", "Strong Sell Signal")
